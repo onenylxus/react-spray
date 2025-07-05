@@ -1,41 +1,59 @@
+export interface TrieOptions {
+  attributeNames: string[];
+  separator: string;
+  forceIndex: boolean;
+  indexPrefix: string;
+  indexSuffix: string;
+}
+
 export class Trie {
-  private static instance: Trie;
+  private options: TrieOptions;
   public root: TrieNode;
 
-  private constructor() {
+  public constructor(options: Partial<TrieOptions> = {}) {
+    this.options = {
+      attributeNames: ['data-id'],
+      separator: '/',
+      forceIndex: false,
+      indexPrefix: '[',
+      indexSuffix: ']',
+      ...options,
+    };
     this.root = new TrieNode();
   }
 
-  public static getInstance(): Trie {
-    if (!Trie.instance) {
-      Trie.instance = new Trie();
-    }
-    return Trie.instance;
+  private get attributeRegex(): RegExp {
+    const prefix = this.options.indexPrefix.replace(
+      /[.*+?^${}()|[\]\\]/g,
+      '\\$&'
+    );
+    const suffix = this.options.indexSuffix.replace(
+      /[.*+?^${}()|[\]\\]/g,
+      '\\$&'
+    );
+    return new RegExp(`^(.+)${prefix}(\\d+)${suffix}$`);
   }
 
-  private static getPath(element: HTMLElement | null): string[] {
+  private getPath(element: HTMLElement): string[] {
     const path: string[] = [];
     let currentElem: HTMLElement | null = element;
 
     while (currentElem && currentElem.tagName.toLowerCase() !== 'body') {
       const sprayAttr = currentElem.getAttribute('data-spray');
-      let identifier = sprayAttr
-        ? sprayAttr
-        : currentElem.tagName.toLowerCase();
+      let identifier = sprayAttr || currentElem.tagName.toLowerCase();
 
       // Find index among siblings with the same identifier
       if (currentElem.parentElement) {
         const siblings = Array.from(currentElem.parentElement.children);
         const sameTypeSiblings = siblings.filter(
-          (sib) =>
-            (sib.getAttribute('data-spray') || sib.tagName.toLowerCase()) ===
-            identifier
+          (sibling) =>
+            (sibling.getAttribute('data-spray') ||
+              sibling.tagName.toLowerCase()) === identifier
         );
-        if (sameTypeSiblings.length > 1) {
+        if (this.options.forceIndex || sameTypeSiblings.length > 1) {
           const index = sameTypeSiblings.indexOf(currentElem);
           identifier = `${identifier}[${index}]`;
         }
-        // else: do not append [0] if only one sibling
       }
 
       path.unshift(identifier);
@@ -44,65 +62,7 @@ export class Trie {
     return path;
   }
 
-  private static updateSiblingIdentifiers(
-    parentNode: TrieNode,
-    parentElem: HTMLElement
-  ) {
-    // Collect all base identifiers (with and without [index])
-    const baseIdentifiers = new Set<string>();
-    parentNode.children.forEach((_, key) => {
-      const match = key.match(/^(.+)\[(\d+)\]$/);
-      if (match) {
-        baseIdentifiers.add(match[1]);
-      } else {
-        baseIdentifiers.add(key);
-      }
-    });
-    baseIdentifiers.forEach((baseIdentifier) => {
-      const siblings = Array.from(parentElem.children).filter(
-        (sib) =>
-          (sib.getAttribute('data-spray') || sib.tagName.toLowerCase()) ===
-          baseIdentifier
-      );
-      if (siblings.length > 1) {
-        siblings.forEach((sib, idx) => {
-          const newKey = `${baseIdentifier}[${idx}]`;
-          for (const [oldKey, node] of parentNode.children) {
-            // oldKey can be baseIdentifier or baseIdentifier[idx]
-            if (node.element === sib && oldKey !== newKey) {
-              parentNode.children.delete(oldKey);
-              parentNode.children.set(newKey, node);
-              Trie.updateNodeDataId(
-                node,
-                Trie.getNodePathFromRoot(Trie.getInstance().root, node)
-              );
-              break;
-            }
-          }
-        });
-      } else if (siblings.length === 1) {
-        // Only one sibling, key should be baseIdentifier (no [0])
-        for (const [oldKey, node] of parentNode.children) {
-          if (node.element === siblings[0] && oldKey !== baseIdentifier) {
-            parentNode.children.delete(oldKey);
-            parentNode.children.set(baseIdentifier, node);
-            Trie.updateNodeDataId(
-              node,
-              Trie.getNodePathFromRoot(Trie.getInstance().root, node)
-            );
-            break;
-          }
-        }
-      }
-    });
-  }
-
-  // Helper to get the path from root to a node, given its parent and key
-  // This version walks from the root to the node, collecting keys.
-  private static getNodePathFromRoot(
-    root: TrieNode,
-    target: TrieNode
-  ): string[] {
+  private getNodePathFromRoot(root: TrieNode, target: TrieNode): string[] {
     const path: string[] = [];
     function dfs(node: TrieNode, currentPath: string[]): boolean {
       if (node === target) {
@@ -120,28 +80,79 @@ export class Trie {
     return path;
   }
 
-  // Helper to update the data-id of a node and all its descendants
-  private static updateNodeDataId(
+  private updateNodeDataId(
     node: TrieNode,
     path: string[],
-    prefix: string = 'body'
+    base: string = 'body'
   ) {
-    const fullPath = [prefix, ...path].join('/');
+    const fullPath = [base, ...path].join(this.options.separator);
     if (node.element) {
-      node.element.setAttribute('data-id', fullPath);
+      this.options.attributeNames.forEach((attribute) => {
+        node.element!.setAttribute(attribute, fullPath);
+      });
     }
     node.children.forEach((child, key) => {
-      Trie.updateNodeDataId(child, [...path, key], prefix);
+      this.updateNodeDataId(child, [...path, key], base);
     });
   }
 
-  public static insert(element: HTMLElement | null): void {
+  private updateSiblingIdentifiers(
+    parentNode: TrieNode,
+    parentElem: HTMLElement
+  ) {
+    const baseIdentifiers = new Set<string>();
+    parentNode.children.forEach((_, key) => {
+      const match = key.match(this.attributeRegex);
+      if (match) {
+        baseIdentifiers.add(match[1]);
+      } else {
+        baseIdentifiers.add(key);
+      }
+    });
+    baseIdentifiers.forEach((baseIdentifier) => {
+      const siblings = Array.from(parentElem.children).filter(
+        (sibling) =>
+          (sibling.getAttribute('data-spray') ||
+            sibling.tagName.toLowerCase()) === baseIdentifier
+      );
+      if (
+        (this.options.forceIndex && siblings.length === 1) ||
+        siblings.length > 1
+      ) {
+        siblings.forEach((sibling, index) => {
+          const newKey = `${baseIdentifier}${this.options.indexPrefix}${index}${this.options.indexSuffix}`;
+          for (const [oldKey, node] of parentNode.children) {
+            if (node.element === sibling && oldKey !== newKey) {
+              parentNode.children.delete(oldKey);
+              parentNode.children.set(newKey, node);
+              this.updateNodeDataId(
+                node,
+                this.getNodePathFromRoot(this.root, node)
+              );
+              break;
+            }
+          }
+        });
+      } else if (siblings.length === 1) {
+        for (const [oldKey, node] of parentNode.children) {
+          if (node.element === siblings[0] && oldKey !== baseIdentifier) {
+            parentNode.children.delete(oldKey);
+            parentNode.children.set(baseIdentifier, node);
+            this.updateNodeDataId(
+              node,
+              this.getNodePathFromRoot(this.root, node)
+            );
+            break;
+          }
+        }
+      }
+    });
+  }
+
+  public insert(element: HTMLElement | null): void {
     if (!element) return;
-
-    const trie = Trie.getInstance();
-    let currentNode = trie.root;
-
-    const path = Trie.getPath(element);
+    let currentNode = this.root;
+    const path = this.getPath(element);
 
     let currentElem: HTMLElement | null = element;
     while (currentElem && currentElem.tagName.toLowerCase() !== 'body') {
@@ -157,6 +168,8 @@ export class Trie {
 
       let parentElem = document.body;
       let nodePath: string[] = [];
+      const prefix = this.options.indexPrefix;
+      const suffix = this.options.indexSuffix;
       for (const tagOrSpray of path) {
         nodePath.push(tagOrSpray);
         if (!node.children.has(tagOrSpray)) {
@@ -164,55 +177,51 @@ export class Trie {
         }
         node = node.children.get(tagOrSpray)!;
 
-        // Try to find the corresponding element for updating siblings
         let baseIdentifier = tagOrSpray;
-        let idx: number | null = null;
-        const match = tagOrSpray.match(/^(.+)\[(\d+)\]$/);
+        let index: number | null = null;
+        const match = tagOrSpray.match(this.attributeRegex);
         if (match) {
           baseIdentifier = match[1];
-          idx = parseInt(match[2], 10);
+          index = parseInt(match[2], 10);
         }
         const siblings = Array.from(parentElem.children).filter(
-          (sib) =>
-            (sib.getAttribute('data-spray') || sib.tagName.toLowerCase()) ===
-            baseIdentifier
+          (sibling) =>
+            (sibling.getAttribute('data-spray') ||
+              sibling.tagName.toLowerCase()) === baseIdentifier
         );
-        if (idx !== null && siblings[idx]) {
-          parentElem = siblings[idx] as HTMLElement;
-        } else if (idx === null && siblings.length === 1) {
+        if (index !== null && siblings[index]) {
+          parentElem = siblings[index] as HTMLElement;
+        } else if (index === null && siblings.length === 1) {
           parentElem = siblings[0] as HTMLElement;
         }
       }
       node.element = element;
 
-      // Set the data-id as the concatenation of identifiers from root
-      const fullId = ['body', ...path].join('/');
-      element.setAttribute('data-id', fullId);
+      const fullId = ['body', ...path].join(this.options.separator);
+      this.options.attributeNames.forEach((attribute) => {
+        element.setAttribute(attribute, fullId);
+      });
 
-      // After insertion, update sibling identifiers for the parent node
       if (parentElem.parentElement) {
-        const parentTrieNode = Trie.getInstance().root.children.get('body');
+        const parentTrieNode = this.root.children.get('body');
         if (parentTrieNode) {
           let parentNode = parentTrieNode;
-          let parentPath = Trie.getPath(parentElem.parentElement);
+          let parentPath = this.getPath(parentElem.parentElement);
           for (const tagOrSpray of parentPath) {
             if (parentNode.children.has(tagOrSpray)) {
               parentNode = parentNode.children.get(tagOrSpray)!;
             }
           }
-          Trie.updateSiblingIdentifiers(parentNode, parentElem.parentElement);
+          this.updateSiblingIdentifiers(parentNode, parentElem.parentElement);
         }
       }
     }
   }
 
-  public static remove(element: HTMLElement | null): void {
+  public remove(element: HTMLElement | null): void {
     if (!element) return;
-
-    const trie = Trie.getInstance();
-    let currentNode = trie.root;
-
-    const path = Trie.getPath(element);
+    let currentNode = this.root;
+    const path = this.getPath(element);
 
     let currentElem: HTMLElement | null = element;
     while (currentElem && currentElem.tagName.toLowerCase() !== 'body') {
@@ -228,26 +237,28 @@ export class Trie {
       stack.push([currentNode, 'body']);
 
       let parentElem = document.body;
+      const prefix = this.options.indexPrefix;
+      const suffix = this.options.indexSuffix;
       for (const tagOrSpray of path) {
         if (!node.children.has(tagOrSpray)) return;
         stack.push([node, tagOrSpray]);
         node = node.children.get(tagOrSpray)!;
 
         let baseIdentifier = tagOrSpray;
-        let idx: number | null = null;
-        const match = tagOrSpray.match(/^(.+)\[(\d+)\]$/);
+        let index: number | null = null;
+        const match = tagOrSpray.match(this.attributeRegex);
         if (match) {
           baseIdentifier = match[1];
-          idx = parseInt(match[2], 10);
+          index = parseInt(match[2], 10);
         }
         const siblings = Array.from(parentElem.children).filter(
-          (sib) =>
-            (sib.getAttribute('data-spray') || sib.tagName.toLowerCase()) ===
-            baseIdentifier
+          (sibling) =>
+            (sibling.getAttribute('data-spray') ||
+              sibling.tagName.toLowerCase()) === baseIdentifier
         );
-        if (idx !== null && siblings[idx]) {
-          parentElem = siblings[idx] as HTMLElement;
-        } else if (idx === null && siblings.length === 1) {
+        if (index !== null && siblings[index]) {
+          parentElem = siblings[index] as HTMLElement;
+        } else if (index === null && siblings.length === 1) {
           parentElem = siblings[0] as HTMLElement;
         }
       }
@@ -264,18 +275,17 @@ export class Trie {
         }
       }
 
-      // After removal, update sibling identifiers for the parent node
       if (parentElem.parentElement) {
-        const parentTrieNode = Trie.getInstance().root.children.get('body');
+        const parentTrieNode = this.root.children.get('body');
         if (parentTrieNode) {
           let parentNode = parentTrieNode;
-          let parentPath = Trie.getPath(parentElem.parentElement);
+          let parentPath = this.getPath(parentElem.parentElement);
           for (const tagOrSpray of parentPath) {
             if (parentNode.children.has(tagOrSpray)) {
               parentNode = parentNode.children.get(tagOrSpray)!;
             }
           }
-          Trie.updateSiblingIdentifiers(parentNode, parentElem.parentElement);
+          this.updateSiblingIdentifiers(parentNode, parentElem.parentElement);
         }
       }
     }
