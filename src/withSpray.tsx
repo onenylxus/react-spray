@@ -1,13 +1,13 @@
 import {
   createElement,
   forwardRef,
+  memo,
   useEffect,
   useRef,
   ComponentType,
   ForwardRefExoticComponent,
   PropsWithoutRef,
   RefAttributes,
-  memo,
 } from 'react';
 import { Trie } from './trie';
 
@@ -39,13 +39,10 @@ export function withSprayFactory(trie: Trie) {
           return () => trie.remove(node);
         }, [innerRef.current]);
 
-        const componentProps = { ...props, 'data-spray': spray } as P & {
-          'data-spray': string;
-        };
-
         return createElement(memo(Component), {
-          ...componentProps,
+          ...props,
           ref: combinedRef,
+          [trie.options.inputAttribute]: spray,
         });
       });
       Wrapped.displayName = Component.displayName || Component.name;

@@ -1,5 +1,6 @@
 export interface TrieOptions {
-  attributeNames: string[];
+  inputAttribute: string;
+  outputAttributes: string[];
   separator: string;
   forceIndex: boolean;
   indexPrefix: string;
@@ -7,12 +8,13 @@ export interface TrieOptions {
 }
 
 export class Trie {
-  private options: TrieOptions;
+  public options: TrieOptions;
   public root: TrieNode;
 
   public constructor(options: Partial<TrieOptions> = {}) {
     this.options = {
-      attributeNames: ['data-id'],
+      inputAttribute: 'data-spray',
+      outputAttributes: ['data-id'],
       separator: '/',
       forceIndex: false,
       indexPrefix: '[',
@@ -39,7 +41,7 @@ export class Trie {
     let currentElem: HTMLElement | null = element;
 
     while (currentElem && currentElem.tagName.toLowerCase() !== 'body') {
-      const sprayAttr = currentElem.getAttribute('data-spray');
+      const sprayAttr = currentElem.getAttribute(this.options.inputAttribute);
       let identifier = sprayAttr || currentElem.tagName.toLowerCase();
 
       // Find index among siblings with the same identifier
@@ -47,7 +49,7 @@ export class Trie {
         const siblings = Array.from(currentElem.parentElement.children);
         const sameTypeSiblings = siblings.filter(
           (sibling) =>
-            (sibling.getAttribute('data-spray') ||
+            (sibling.getAttribute(this.options.inputAttribute) ||
               sibling.tagName.toLowerCase()) === identifier
         );
         if (this.options.forceIndex || sameTypeSiblings.length > 1) {
@@ -87,7 +89,7 @@ export class Trie {
   ) {
     const fullPath = [base, ...path].join(this.options.separator);
     if (node.element) {
-      this.options.attributeNames.forEach((attribute) => {
+      this.options.outputAttributes.forEach((attribute) => {
         node.element!.setAttribute(attribute, fullPath);
       });
     }
@@ -112,7 +114,7 @@ export class Trie {
     baseIdentifiers.forEach((baseIdentifier) => {
       const siblings = Array.from(parentElem.children).filter(
         (sibling) =>
-          (sibling.getAttribute('data-spray') ||
+          (sibling.getAttribute(this.options.inputAttribute) ||
             sibling.tagName.toLowerCase()) === baseIdentifier
       );
       if (
@@ -186,7 +188,7 @@ export class Trie {
         }
         const siblings = Array.from(parentElem.children).filter(
           (sibling) =>
-            (sibling.getAttribute('data-spray') ||
+            (sibling.getAttribute(this.options.inputAttribute) ||
               sibling.tagName.toLowerCase()) === baseIdentifier
         );
         if (index !== null && siblings[index]) {
@@ -198,7 +200,7 @@ export class Trie {
       node.element = element;
 
       const fullId = ['body', ...path].join(this.options.separator);
-      this.options.attributeNames.forEach((attribute) => {
+      this.options.outputAttributes.forEach((attribute) => {
         element.setAttribute(attribute, fullId);
       });
 
@@ -253,7 +255,7 @@ export class Trie {
         }
         const siblings = Array.from(parentElem.children).filter(
           (sibling) =>
-            (sibling.getAttribute('data-spray') ||
+            (sibling.getAttribute(this.options.inputAttribute) ||
               sibling.tagName.toLowerCase()) === baseIdentifier
         );
         if (index !== null && siblings[index]) {

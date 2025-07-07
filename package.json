@@ -4,6 +4,12 @@
   "description": "ID insertion for React components",
   "author": "Nicholas Ng",
   "license": "MIT",
+  "keywords": [
+    "react",
+    "typescript",
+    "identifier",
+    "trie"
+  ],
   "main": "dist/main.js",
   "types": "dist/main.d.ts",
   "type": "module",
