@@ -1,11 +1,11 @@
 import React from 'react';
-import ReactSpray from '../dist/main';
+import ReactSpray from '../src/main';
 import { render, cleanup, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 const { spray } = ReactSpray();
 
-describe('withSpray', () => {
+describe('base testing set', () => {
   afterEach(cleanup);
 
   it('assigns correct data-id to single child', async () => {

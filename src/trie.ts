@@ -54,7 +54,7 @@ export class Trie {
         );
         if (this.options.forceIndex || sameTypeSiblings.length > 1) {
           const index = sameTypeSiblings.indexOf(currentElem);
-          identifier = `${identifier}[${index}]`;
+          identifier = `${identifier}${this.options.indexPrefix}${index}${this.options.indexSuffix}`;
         }
       }
 
@@ -170,8 +170,6 @@ export class Trie {
 
       let parentElem = document.body;
       let nodePath: string[] = [];
-      const prefix = this.options.indexPrefix;
-      const suffix = this.options.indexSuffix;
       for (const tagOrSpray of path) {
         nodePath.push(tagOrSpray);
         if (!node.children.has(tagOrSpray)) {
@@ -239,8 +237,6 @@ export class Trie {
       stack.push([currentNode, 'body']);
 
       let parentElem = document.body;
-      const prefix = this.options.indexPrefix;
-      const suffix = this.options.indexSuffix;
       for (const tagOrSpray of path) {
         if (!node.children.has(tagOrSpray)) return;
         stack.push([node, tagOrSpray]);
