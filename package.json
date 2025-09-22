@@ -20,7 +20,8 @@
     "postbuild": "npm run test",
     "prepublishOnly": "npm run build",
     "lint": "eslint --fix",
-    "test": "jest"
+    "test": "jest",
+    "debug": "jest --watch"
   },
   "files": [
     "dist",
