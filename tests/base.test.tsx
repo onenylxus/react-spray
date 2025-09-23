@@ -14,7 +14,7 @@ describe('base testing set', () => {
     const testDiv = getByTestId('test-div');
 
     await waitFor(() => {
-      expect(testDiv).toHaveAttribute('data-id', 'body/div/div');
+      expect(testDiv).toHaveAttribute('data-id', 'div/div');
     });
   });
 
@@ -30,8 +30,8 @@ describe('base testing set', () => {
     const testDiv2 = getByTestId('test-div2');
 
     await waitFor(() => {
-      expect(testDiv1).toHaveAttribute('data-id', 'body/div/div[0]');
-      expect(testDiv2).toHaveAttribute('data-id', 'body/div/div[1]');
+      expect(testDiv1).toHaveAttribute('data-id', 'div/div[1]');
+      expect(testDiv2).toHaveAttribute('data-id', 'div/div[2]');
     });
   });
 
@@ -47,8 +47,8 @@ describe('base testing set', () => {
     const testDiv2 = getByTestId('test-div2');
 
     await waitFor(() => {
-      expect(testDiv1).toHaveAttribute('data-id', 'body/div/div[0]');
-      expect(testDiv2).toHaveAttribute('data-id', 'body/div/div[1]');
+      expect(testDiv1).toHaveAttribute('data-id', 'div/div[1]');
+      expect(testDiv2).toHaveAttribute('data-id', 'div/div[2]');
     });
 
     rerender(
@@ -62,8 +62,8 @@ describe('base testing set', () => {
     const testDiv4 = getByTestId('test-div4');
 
     await waitFor(() => {
-      expect(testDiv3).toHaveAttribute('data-id', 'body/div/div[0]');
-      expect(testDiv4).toHaveAttribute('data-id', 'body/div/div[1]');
+      expect(testDiv3).toHaveAttribute('data-id', 'div/div[1]');
+      expect(testDiv4).toHaveAttribute('data-id', 'div/div[2]');
     });
   });
 });

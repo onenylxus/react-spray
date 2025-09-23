@@ -1,14 +1,25 @@
-import { getHTMLElements } from './htmlElements';
-import { Trie, TrieOptions } from './trie';
-import { withSprayFactory } from './withSpray';
+import { withSprayFactory } from './factory';
+import { Sprayer, SprayOptions } from './sprayer';
+import { getInstrinsicElements, Intrinsics } from './intrinsic';
 
-export default function createWithSpray(options: Partial<TrieOptions> = {}) {
-  const trie = new Trie(options);
-  const withSpray = withSprayFactory(trie);
-  const htmlElements = getHTMLElements(withSpray);
+interface ReactSpray {
+  withSpray: ReturnType<typeof withSprayFactory>;
+  spray: Intrinsics;
+}
 
+/**
+ * Initialize a sprayer to spray components.
+ *
+ * @param options Spraying options
+ * @returns An object containing an HOC `withSpray` and a `spray` object with intrinsic elements
+ */
+export default function createWithSpray(
+  options: Partial<SprayOptions> = {}
+): ReactSpray {
+  const sprayer = new Sprayer(options);
+  const withSpray = withSprayFactory(sprayer);
   return {
     withSpray,
-    spray: { ...htmlElements },
+    spray: getInstrinsicElements(withSpray),
   };
 }
