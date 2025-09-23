@@ -1,23 +1,29 @@
 import {
-  type ComponentType,
   createElement,
   forwardRef,
-  type ForwardRefExoticComponent,
   memo,
-  type PropsWithoutRef,
-  type RefAttributes,
   useCallback,
   useEffect,
   useRef,
+  type ComponentType,
+  type ForwardRefExoticComponent,
+  type PropsWithoutRef,
+  type RefAttributes,
 } from 'react';
 import { Sprayer } from './sprayer';
 
 type InputComponent<P> = ComponentType<P>;
 
-type OutputComponent<P> = ForwardRefExoticComponent<
+export type OutputComponent<P> = ForwardRefExoticComponent<
   PropsWithoutRef<P> & RefAttributes<HTMLElement>
 >;
 
+/**
+ * Factory function to create a higher-order component that sprays components.
+ * 
+ * @param sprayer Sprayer instance
+ * @returns Higher-order component
+ */
 export function withSprayFactory(sprayer: Sprayer) {
   return function withSpray(label: string) {
     return function <P extends object>(

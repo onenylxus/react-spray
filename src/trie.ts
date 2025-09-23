@@ -1,5 +1,15 @@
+/**
+ * Node of trie data structure.
+ */
 class TrieNode<T> {
+  /**
+   * Value stored in this node.
+   */
   public value: T | null;
+
+  /**
+   * Children nodes mapped by their keys.
+   */
   public children: Map<string, TrieNode<T>>;
 
   constructor(value: T | null = null) {
@@ -8,13 +18,25 @@ class TrieNode<T> {
   }
 }
 
+/**
+ * Trie data structure.
+ */
 export class Trie<T> {
+  /**
+   * Root node of the trie.
+   */
   private root: TrieNode<T>;
 
   public constructor(value?: T) {
     this.root = new TrieNode<T>(value);
   }
 
+  /**
+   * Search for a value by its keys.
+   *
+   * @param keys Keys to reach the target node
+   * @returns The value found at the target node, or null if not found
+   */
   public search(keys: string[]): T | null {
     let node = this.root;
     for (const key of keys) {
@@ -26,6 +48,13 @@ export class Trie<T> {
     return node.value;
   }
 
+  /**
+   * Insert a node with given value to the trie at the position defined by keys.
+   *
+   * @param keys Keys to reach the target position
+   * @param value Value stored in new node
+   * @returns True if the insertion was successful
+   */
   public insert(keys: string[], value: T): boolean {
     let node = this.root;
     for (const key of keys) {
@@ -38,6 +67,12 @@ export class Trie<T> {
     return true;
   }
 
+  /**
+   * Remove a node from the trie at the position defined by keys.
+   *
+   * @param keys Keys to reach the target node
+   * @returns True if the removal was successful
+   */
   public remove(keys: string[]): boolean {
     const stack: [string, TrieNode<T>][] = [];
     let node = this.root;

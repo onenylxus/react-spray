@@ -1,22 +1,25 @@
-import { createElement } from 'react';
 import { withSprayFactory } from './factory';
 import { Sprayer, SprayOptions } from './sprayer';
-import HtmlElements from './htmlElements.json';
+import { getInstrinsicElements, Intrinsics } from './intrinsic';
 
-function getSprayHtmlElements(withSpray: ReturnType<typeof withSprayFactory>) {
-  return Object.fromEntries(
-    HtmlElements.map((tag) => {
-      const TagComponent = (props: any) => createElement(tag, props);
-      return [tag, withSpray(tag)(TagComponent)];
-    })
-  );
+interface ReactSpray {
+  withSpray: ReturnType<typeof withSprayFactory>;
+  spray: Intrinsics;
 }
 
-export default function createWithSpray(options: Partial<SprayOptions> = {}) {
+/**
+ * Initialize a sprayer to spray components.
+ *
+ * @param options Spraying options
+ * @returns An object containing an HOC `withSpray` and a `spray` object with intrinsic elements
+ */
+export default function createWithSpray(
+  options: Partial<SprayOptions> = {}
+): ReactSpray {
   const sprayer = new Sprayer(options);
   const withSpray = withSprayFactory(sprayer);
   return {
     withSpray,
-    spray: getSprayHtmlElements(withSpray),
-  }
+    spray: getInstrinsicElements(withSpray),
+  };
 }
