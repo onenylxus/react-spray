@@ -1,5 +1,5 @@
 import { Trie } from '../src/trie';
-import { randint, randnum, randstr, randstrs } from './fixtures';
+import { randint, randnum, randstr, randstrs } from './fixtures/random';
 
 describe('constructor', () => {
   it('Case 1: empty root node', () => {
